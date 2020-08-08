@@ -1,0 +1,148 @@
+<template>
+  <list-placeholder @create="create" :showing="hasData" :loading="isLoading" :buttons="buttons">
+    <b-table
+      ref="jobList"
+      custom-key="ulid"
+      :data="jobData.jobs"
+      :striped="true"
+      :mobile-cards="true"
+      :paginated="true"
+      :per-page="limit"
+      :backend-pagination="true"
+      :backend-sorting="true"
+      :total="jobData.total"
+      sort="sort"
+      @page-change="pageChange"
+      class="is-vertical-centered"
+    >
+      <template slot-scope="props">
+        <b-table-column label="">
+          <div class="field has-addons">
+            <p class="control -u-mb">
+              <button class="button is-small" @click="edit(props.row, props.index)">
+                Edit
+              </button>
+            </p>
+          </div>
+        </b-table-column>
+        <b-table-column field="name" label="Name">
+          {{ props.row.name }}
+        </b-table-column>
+        <b-table-column field="status" label="Status">
+          <job-status :value="props.row.status" @change="(val) => {changeStatus(props.row, val)}" />
+        </b-table-column>
+        <b-table-column field="due_date" label="Due Date">
+          {{ fmtDate(props.row.DueDate) }}
+        </b-table-column>
+        <b-table-column field="date_created" label="Date Created">
+          {{ fmtDate(props.row.date_created) }}
+        </b-table-column>
+        <b-table-column field="date_modified" label="Date Modified">
+          {{ fmtDate(props.row.date_modified) }}
+        </b-table-column>
+      </template>
+    </b-table>
+  </list-placeholder>
+</template>
+<script>
+import { mapGetters } from 'vuex'
+import gql from 'graphql-tag'
+import ListPlaceholder from '~/components/layout/ListPlaceholder'
+import JobStatus from '~/components/JobStatus'
+
+export default {
+  apollo: {
+    jobData: {
+      variables () {
+        return {
+          siteID: this.siteID,
+          offset: this.offset,
+          limit: this.limit
+        }
+      },
+      update ({ jobs, total }) {
+        let count = total.aggregate.count || 0
+        let result = {
+          jobs,
+          total: count
+        }
+        return result
+      },
+      query: gql`query jobs($siteID: String, $offset: Int, $limit: Int){
+        jobs: jobs(where: { site_ulid: {_eq: $siteID }}, offset: $offset, limit: $limit) {
+          client_ulid
+          date_created
+          date_modified
+          name
+          notes
+          quote_notes
+          site_ulid
+          status
+          job_ulid
+        },
+        total: jobs_aggregate(where: { site_ulid: {_eq: $siteID }}) {
+          aggregate {
+            count
+          }
+        }
+      }`
+
+    }
+  },
+  components: {
+    ListPlaceholder,
+    JobStatus
+  },
+  data () {
+    return {
+      page: 1,
+      limit: 3,
+      jobData: {
+        jobs: [],
+        total: 0
+      }
+    }
+  },
+  computed: {
+    ...mapGetters({
+      user: 'app/user',
+      siteID: 'auth/siteID'
+    }),
+    isLoading () {
+      return this.$apollo.queries.jobData.loading
+    },
+    hasData () {
+      if (this.jobData && this.jobData.jobs && this.jobData.jobs.length > 0) {
+        return true
+      }
+      return false
+    },
+    offset () {
+      return (this.page - 1) * this.limit
+    },
+    buttons () {
+      return [
+        { text: 'Add New', alignment: 'left', kind: 'success', click: this.create }
+      ]
+    }
+  },
+  methods: {
+    // sort (field, direction) {
+    //   let pagedData = this.pagedData
+    //   this.load(field, direction, pagedData.limit, pagedData.pageNum)
+    // },
+
+    pageChange (page) {
+      this.page = page
+    },
+
+    create () {
+      this.$router.push({ name: 'jobs-ID-jobEdit', params: { ID: 'new' } })
+    },
+
+    edit (record) {
+      this.$router.push({ name: 'jobs-ID-jobEdit', params: { ID: record.job_ulid } })
+    }
+  }
+}
+</script>

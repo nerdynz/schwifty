@@ -1,0 +1,318 @@
+package models
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"sort"
+	"strings"
+	"time"
+
+	runner "github.com/nerdynz/dat/sqlx-runner"
+)
+
+var timeEntryHelperGlobal *timeEntryHelper
+
+// TimeEntry Record
+type TimeEntry struct {
+	TimeEntryULID string    `db:"time_entry_ulid" json:"TimeEntryULID"`
+	ClientULID    string    `db:"client_ulid" json:"ClientULID"`
+	TaskULID      string    `db:"task_ulid" json:"TaskULID"`
+	MilestoneULID string    `db:"milestone_ulid" json:"MilestoneULID"`
+	StartTime     time.Time `db:"start_time" json:"StartTime"`
+	EndTime       time.Time `db:"end_time" json:"EndTime"`
+	Description   string    `db:"description" json:"Description"`
+	Title         string    `db:"title" json:"Title"`
+	SiteULID      string    `db:"site_ulid" json:"SiteULID"`
+}
+
+type TimeEntries []*TimeEntry
+
+func (h *timeEntryHelper) beforeSave(record *TimeEntry) (err error) {
+	validationErr := h.validate(record)
+	if validationErr != nil {
+		return validationErr
+	}
+	return err
+}
+
+func (h *timeEntryHelper) afterSave(record *TimeEntry) (err error) {
+	return err
+}
+
+// GENERATED CODE - Leave the below code alone
+type timeEntryHelper struct {
+	DB         *runner.DB
+	Cache      Cache
+	fieldNames []string
+	orderBy    string
+}
+
+func TimeEntryHelper() *timeEntryHelper {
+	if timeEntryHelperGlobal == nil {
+		timeEntryHelperGlobal = newTimeEntryHelper(modelDB, modelCache)
+	}
+	return timeEntryHelperGlobal
+}
+
+func newTimeEntryHelper(db *runner.DB, cache Cache) *timeEntryHelper {
+	helper := &timeEntryHelper{}
+	helper.DB = db
+	helper.Cache = cache
+
+	// Fields
+	fieldnames := []string{"time_entry_ulid", "time_entry_ulid", "client_ulid", "task_ulid", "milestone_ulid", "start_time", "end_time", "description", "title", "site_ulid"}
+	sort.Strings(fieldnames) // sort it makes searching it work correctly
+	helper.fieldNames = fieldnames
+
+	helper.orderBy = "date_created, date_modified"
+	return helper
+}
+
+func (h *timeEntryHelper) New(siteULID string) *TimeEntry {
+	record := &TimeEntry{}
+	record.SiteULID = siteULID
+	return record
+}
+
+func (h *timeEntryHelper) FromRequest(siteULID string, req *http.Request) (*TimeEntry, error) {
+	record := h.New(siteULID)
+	contentType := req.Header.Get("Content-Type")
+	if strings.Contains(contentType, "application/json") {
+		// working with json
+		decoder := json.NewDecoder(req.Body)
+		err := decoder.Decode(record)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("Disabled - bring in h.structDecoder from gorilla")
+		// // working with form values
+		// err := req.ParseForm()
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		// err = h.structDecoder.Decode(record, req.PostForm)
+		// if err != nil {
+		// 	return nil, err
+		// }
+	}
+	if record.SiteULID != siteULID {
+		return nil, errors.New("*TimeEntry update failed. Site ULID Mismatch")
+	}
+	record.SiteULID = siteULID
+	return record, nil
+}
+
+func (h *timeEntryHelper) Load(siteULID string, ulid string) (*TimeEntry, error) {
+	record, err := h.One(siteULID, "time_entry_ulid = $1", ulid)
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (h *timeEntryHelper) All(siteULID string) (TimeEntries, error) {
+	var records TimeEntries
+	err := h.DB.Select("*").
+		From("time_entry").
+		Where("site_ulid = $1", siteULID).
+		OrderBy(h.orderBy).
+		QueryStructs(&records)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return records, nil
+}
+
+func (h *timeEntryHelper) Where(siteULID string, sql string, args ...interface{}) (TimeEntries, error) {
+	var records TimeEntries
+	sql, args = appendSiteULID(siteULID, sql, args...)
+	err := h.DB.Select("*").
+		From("time_entry").
+		Where(sql, args...).
+		OrderBy(h.orderBy).
+		QueryStructs(&records)
+
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func (h *timeEntryHelper) SQL(siteULID string, sql string, args ...interface{}) (TimeEntries, error) {
+	if !strings.Contains(sql, "$SITEID") {
+		return nil, errors.New("No $SITEID placeholder defined")
+	}
+	var records TimeEntries
+	sql, args = appendSiteULID(siteULID, sql, args...)
+	err := h.DB.SQL(sql, args...).
+		QueryStructs(&records)
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func (h *timeEntryHelper) One(siteULID string, sql string, args ...interface{}) (*TimeEntry, error) {
+	var record TimeEntry
+	sql, args = appendSiteULID(siteULID, sql, args...)
+
+	err := h.DB.Select("*").
+		From("time_entry").
+		Where(sql, args...).
+		OrderBy(h.orderBy).
+		Limit(1).
+		QueryStruct(&record)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &record, nil
+}
+
+func (h *timeEntryHelper) Paged(siteULID string, pageNum int, itemsPerPage int) (*PagedData, error) {
+	pd, err := h.PagedBy(siteULID, pageNum, itemsPerPage, "date_created", "") // date_created should be the most consistant because it doesn't change
+	if err != nil {
+		return nil, err
+	}
+	return pd, nil
+}
+
+func (h *timeEntryHelper) PagedBy(siteULID string, pageNum int, itemsPerPage int, orderByFieldName string, direction string) (*PagedData, error) {
+	if orderByFieldName == "" || orderByFieldName == "default" {
+		// we only want the first field name
+		orderByFieldName = strings.Split(h.orderBy, ",")[0]
+		orderByFieldName = strings.Trim(orderByFieldName, " ")
+	}
+	i := sort.SearchStrings(h.fieldNames, orderByFieldName)
+	// check the orderby exists within the fields as this could be an easy sql injection hole.
+	if !(i < len(h.fieldNames) && h.fieldNames[i] == orderByFieldName) { // NOT
+		return nil, errors.New("field name [" + orderByFieldName + "]  isn't a valid field name")
+	}
+
+	if !(direction == "asc" || direction == "desc" || direction == "") {
+		return nil, errors.New("direction isn't valid")
+	}
+
+	var records TimeEntries
+	err := h.DB.Select("*").
+		From("time_entry").
+		Where("site_ulid = $1", siteULID).
+		OrderBy(orderByFieldName + " " + direction).
+		Offset(uint64((pageNum - 1) * itemsPerPage)).
+		Limit(uint64(itemsPerPage)).
+		QueryStructs(&records)
+
+	if err != nil {
+		return nil, err
+	}
+
+	count := 0
+	h.DB.SQL(`select count(time_entry_ulid) from time_entry where site_ulid = $1`, siteULID).QueryStruct(&count)
+	return NewPagedData(records, orderByFieldName, direction, itemsPerPage, pageNum, count), nil
+}
+
+func (h *timeEntryHelper) Save(siteULID string, record *TimeEntry) error {
+	return h.save(siteULID, record)
+}
+
+func (h *timeEntryHelper) SaveMany(siteULID string, records TimeEntries) error {
+	for _, record := range records {
+		err := h.save(siteULID, record)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (h *timeEntryHelper) save(siteULID string, record *TimeEntry) error {
+	err := h.beforeSave(record)
+	if err != nil {
+		return err
+	}
+
+	if record.SiteULID != siteULID {
+		return errors.New("*TimeEntry update failed. SiteID Mismatch")
+	}
+	cols := []string{ "time_entry_ulid", "client_ulid", "task_ulid", "milestone_ulid", "start_time", "end_time", "description", "title", "site_ulid" }
+	vals := []interface{}{ record.TimeEntryULID, record.ClientULID, record.TaskULID, record.MilestoneULID, record.StartTime, record.EndTime, record.Description, record.Title, record.SiteULID }
+	err = h.DB.Upsert("time_entry").
+		Columns(cols...).
+		Values(vals...).
+		Where("time_entry_ulid = $1", record.TimeEntryULID).
+		Returning("time_entry_ulid").
+		QueryStruct(record)
+
+	//	if record.TimeEntryULID != "" {
+	//		// UPDATE
+	//		b := h.DB.Update("time_entry")
+	//		for i := range cols {
+	//			b.Set(cols[i], vals[i])
+	//		}
+	//		b.Where("time_entry_ulid = $1", record.TimeEntryULID)
+	//		b.Returning("time_entry_ulid")
+	//		err = b.QueryStruct(record)
+	//	} else {
+	//		// INSERT
+	//		err = h.DB.
+	//			InsertInto("time_entry").
+	//			Columns(cols...).
+	//			Values(vals...).
+	//			Returning("time_entry_ulid").
+	//			QueryStruct(record)
+	//	}
+	if err != nil {
+		return err
+	}
+	err = h.afterSave(record)
+	return err
+}
+
+func (h *timeEntryHelper) Delete(siteULID string, recordULID string) (bool, error) {
+	result, err := h.DB.
+		Update("time_entry").
+		Set("date_deleted", time.Now()).
+		Where("site_ulid=$1 and time_entry_ulid=$2", siteULID, recordULID).
+		Exec()
+
+	if err != nil {
+		return false, err
+	}
+
+	return (result.RowsAffected > 0), nil
+}
+
+func (h *timeEntryHelper) Purge(siteULID string, recordULID string) (bool, error) {
+	result, err := h.DB.
+		DeleteFrom("time_entry").
+		Where("site_ulid=$1 and time_entry_ulid=$2", siteULID, recordULID).
+		Exec()
+
+	if err != nil {
+		return false, err
+	}
+
+	return (result.RowsAffected > 0), nil
+}
+
+func (h *timeEntryHelper) validate(record *TimeEntry) (err error) {
+	return nil
+	//	validationErrors := h.validator.Struct(record)
+	//	if validationErrors != nil {
+	//		errMessage := ""
+	//		for _, err := range err.(validator.ValidationErrors) {
+	//			errMessage += err.Kind().String() + " validation Error on field "+err.Field()
+	//		}
+	//		if errMessage != "" {
+	//			err = errors.New(errMessage)
+	//		}
+	//	}
+	//	return err
+}

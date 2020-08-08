@@ -1,0 +1,150 @@
+<template>
+  <div v-if="record">
+    <div class="">
+      <field for="JobID" label="Job Id">
+        <b-input label="Job Id" name="JobID" type="number" v-model="record.JobID" x-validate="'required'" />
+      </field>
+      <field for="Name" label="Name">
+        <b-input label="Name" name="Name" type="text" v-model="record.Name" x-validate="'required'" />
+      </field>
+      <field for="ClientID" label="Client Id">
+        <b-input label="Client Id" name="ClientID" type="number" v-model="record.ClientID" x-validate="'required'" />
+      </field>
+      <field for="Status" label="Status">
+        <b-input label="Status" name="Status" type="text" v-model="record.Status" x-validate="'required'" />
+      </field>
+      <field for="DueDate" label="Due Date">
+        <b-datepicker label="Due Date" name="DueDate" type="datetime" v-model="record.DueDate" x-validate="'required'" />
+      </field>
+      <field for="Notes" label="Notes">
+        <b-input label="Notes" name="Notes" type="text" v-model="record.Notes" x-validate="'required'" />
+      </field>
+      <field for="QuoteNotes" label="Quote Notes">
+        <b-input label="Quote Notes" name="QuoteNotes" type="text" v-model="record.QuoteNotes" x-validate="'required'" />
+      </field>
+      <field for="DateCreated" label="Date Created">
+        <b-datepicker label="Date Created" name="DateCreated" type="datetime" v-model="record.DateCreated" x-validate="'required'" />
+      </field>
+      <field for="DateModified" label="Date Modified">
+        <b-datepicker label="Date Modified" name="DateModified" type="datetime" v-model="record.DateModified" x-validate="'required'" />
+      </field>
+      <field for="Ulid" label="Ulid">
+        <b-input label="Ulid" name="Ulid" type="text" v-model="record.Ulid" x-validate="'required'" />
+      </field>
+      <field for="SiteID" label="Site Id">
+        <b-input label="Site Id" name="SiteID" type="number" v-model="record.SiteID" x-validate="'required'" />
+      </field>
+    </div>
+  </div>
+</template>
+
+<script>
+import { mapGetters, mapActions } from 'vuex'
+
+export default {
+  components: {
+  },
+  data () {
+    return {
+      record: null
+    }
+  },
+  computed: {
+    isNewRecord () {
+      if (this.routeID <= 0) {
+        return true
+      }
+      return false
+    },
+    routeID () {
+      return this.$route.params.ID ? parseInt(this.$route.params.ID) : 0
+    },
+    buttons () {
+      let buttons = [
+        { text: 'Save', alignment: 'left', kind: 'success', click: this.save, isDisabled: false },
+        { text: 'Save & Return', alignment: 'left', kind: 'success', click: () => { this.save(true) }, isDisabled: false },
+        { text: 'Back', alignment: 'left', kind: '', click: this.back }
+      ]
+      if (this.isNewRecord) {
+
+      } else {
+        // cant delete a new record
+        buttons.push({ text: 'Delete', alignment: 'right', kind: 'danger', click: this.remove })
+      }
+      return buttons
+    },
+    ...mapGetters({
+      user: 'app/user'
+    })
+  },
+  watch: {
+  },
+  beforeCreate () {
+  },
+  created () {
+    this.loadRecord()
+    this.setButtons(this.buttons)
+  },
+  beforeMount () {
+  },
+  mounted () {
+  },
+  beforeUpdate () {
+  },
+  updated () {
+  },
+  beforeDestroy () {
+  },
+  destroyed () {
+  },
+  methods: {
+    ...mapActions({
+      setButtons: 'app/setButtons',
+      siteID: 'auth/siteID'
+    }),
+
+    loadRecord () {
+      let loader = this.$loader.open()
+      if (this.isNewRecord) {
+        this.record = this.$service.new('job', this.siteID)
+        loader.close()
+      } else {
+        this.$service.retrieve('job', this.routeID).then((newRecord) => {
+          this.record = newRecord
+          loader.close()
+        })
+      }
+    },
+
+    save () {
+      let promise = new Promise((resolve, reject) => {
+        // eslint-disable-next-line
+        if (true) { // todo: validation here
+          this.$service.save('job', this.record).then((newRecord) => {
+            this.record = newRecord
+            this.$snackbar.open({ position: 'is-top', message: 'Job saved successfully', type: 'is-success' })
+            if (this.routeID === 0) {
+              this.$router.replace({ name: 'jobs-ID-jobEdit', params: { ID: newRecord.JobID } })
+            }
+            resolve(newRecord)
+          })
+        } else {
+          this.$snackbar.open({ position: 'is-top', title: 'Failed to save!', message: 'Please double check the fields highlighted.', type: 'is-danger' })
+        }
+      })
+      return promise
+    },
+
+    back (ev) {
+      this.$router.go(-1)
+    },
+
+    remove () {
+      this.$service.remove('job', this.record).then(() => {
+        this.$toast.open({ message: 'Job removed', type: 'is-danger' })
+        this.back()
+      })
+    }
+  }
+}
+</script>

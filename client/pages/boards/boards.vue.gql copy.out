@@ -1,0 +1,351 @@
+<template>
+  <div class="is-relative u-fh rel-overlay is-not-transparentx">
+    <b-loading :active="isLoading" />
+    <!-- <b-tabs
+      type="is-toggle"
+      class="board-tabs"
+      :animated="false"
+      :only-fade="false"
+      :value="currentBoardIndex"
+      @change="changeBoard"
+    >
+      <b-tab-item v-for="(board, index) in boardData.records" :label="board.title" :key="index">
+        <template slot="header">
+
+        </template>
+      </b-tab-item>
+    </b-tabs> -->
+    <div class="board-tabs">
+      <drop
+        v-for="(board, index) in boardData.records"
+        class="board-tab"
+        :class="{'is-active': boardUlid === board.ulid}"
+        :key="index"
+        @dragover="tabOver"
+        @drop="(xfer, ev) => {tabDrop(xfer, ev, board)}"
+      >
+        <drag
+          class="tab-item-custom"
+          @click="changeBoard(board.ulid)"
+          @drag="tabDragging"
+          @dragend="dragCleanUp"
+          :transfer-data="{task: board, index: index, type: 'board', status: ''}"
+          :title="board.title"
+          :class="{'has-hover': board.ulid === currentHoverULID, 'is-being-dragged': board.ulid === currentDraggingULID}"
+          :ulid="board.ulid"
+        >
+          <div class="board-color-tab" :style="{'background': board.color}" />
+          <a class="is-overlay" @click="changeBoard(board.ulid)" />
+          <div class="inner">
+            {{ fmtMax(board.title, 20, '...') }}
+          </div>
+          <!-- <span v-if="currentBoardIndex == index" class="tag is-rounded  is-small" :class="{'is-success': currentBoardTaskCount(board) < 5 , 'is-warning': currentBoardTaskCount(board) >= 5 && currentBoardTaskCount(board) < 10,'is-danger': board.TaskCount > 10 }">
+            {{ currentBoardTaskCount(board) }}
+          </span>
+          <span v-else class="tag is-rounded  is-small" :class="{'is-success': board.TaskCount < 5 , 'is-warning': board.TaskCount >= 5 && board.TaskCount <= 10,'is-danger': board.TaskCount > 10 }">
+            {{ board.TaskCount ? board.TaskCount : 0 }}
+          </span> -->
+        </drag>
+      </drop>
+      <div class="board-tab spacer-tab">
+        <div class="tab-item-custom">
+          <div class="inner">
+            &nbsp;
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <board
+      v-if="boardUlid"
+      :selected-board-ulid="boardUlid"
+      :selected-task-ulid="selectedTaskULID"
+      @add-task="addTask"
+      @board-loaded="boardLoaded"
+      @board-updated="updateBoards"
+      @board-save="saveBoard"
+      class="board u-fh"
+    />
+  </div>
+</template>
+
+<script>
+import { mapActions, mapGetters } from 'vuex'
+import gql from 'graphql-tag'
+import Board from '~/components/Board.vue'
+import { fmtMax, fmtDate } from '~/helpers/format.js'
+import { randomHexColor } from '~/helpers/helpers.js'
+import { changeSortReverse, getMaxSort, indexByField } from '~/helpers/filters.js'
+
+// import {showMessage, showNotification} from '../../helpers/notification.js'
+export default {
+  components: {
+    Board
+  },
+  props: {
+    boardUlid: {
+      type: String,
+      required: true
+    }
+  },
+  apollo: {
+    boardData: {
+      variables () {
+        return {
+          siteID: this.siteID,
+          offset: this.offset,
+          limit: this.limit
+        }
+      },
+      update ({ boards, total }) {
+        let count = total.aggregate.count || 0
+        let result = {
+          records: boards,
+          total: count
+        }
+        return result
+      },
+      query () {
+        return gql`query boards($siteID: Int, $offset: Int, $limit: Int){
+          boards: board(where: { site_id: {_eq: $siteID }, is_active: {_eq: true}}, offset: $offset, limit: $limit) {
+              client_id
+              color
+              date_created
+              date_modified
+              is_active
+              site_id
+              sort_position
+              title
+              ulid
+          },
+          total: board_aggregate(where: { site_id: {_eq: $siteID }}) {
+            aggregate {
+              count
+            }
+          }
+        }`
+      }
+    }
+  },
+  data () {
+    return {
+      isLoading: false,
+      currentDraggingULID: '',
+      currentHoverULID: '',
+      tabsPageIndex: 0,
+      xpos: 0,
+      ypos: 0,
+      boardData: {
+        records: [],
+        total: 0
+      },
+      isComponentModalActive: false,
+      selectedTaskULID: ''
+    }
+  },
+  computed: {
+    ...mapGetters({
+      userID: 'auth/userID',
+      siteID: 'auth/siteID',
+      usertoken: 'auth/usertoken'
+    }),
+    currentBoard () {
+      if (this.boards && this.boardUlid) {
+        return indexByField(this.boards, 'ulid', this.boardUlid)
+      }
+      return {}
+    },
+    buttons () {
+      return [
+        { text: 'Add New Task', alignment: 'left', kind: 'link', click: this.addTask },
+        { text: 'Add New Board', alignment: 'left', kind: 'success', click: this.addBoard },
+        { text: 'Archive Board', alignment: 'right', kind: 'warning', click: () => { this.archive() } },
+        { text: 'Print Board', alignment: 'right', kind: '', click: () => { window.open(`/board/print/${this.currentBoard.BoardID}?authtoken=${this.usertoken}`, 'print_board', '', true) } }
+      ]
+    }
+  },
+  watch: {
+
+  },
+  beforeCreate () {
+  },
+  created () {
+    // this.load()
+    // this.setButtons(this.buttons)
+  },
+  beforeMount () {
+  },
+  mounted () {
+    this.setButtons(this.buttons)
+  },
+  beforeUpdate () {
+  },
+  updated () {
+  },
+  beforeDestroy () {
+  },
+  destroyed () {
+  },
+  methods: {
+    fmtMax,
+
+    tabDragging (na, ev) {
+      if (ev.target && ev.target.children && ev.target.children.length > 0) {
+        let blockEl = ev.target.children[0]
+        // if (blockEl.className.indexOf('is-being-dragged') < 0) {
+        //   blockEl.classList += ' is-being-dragged'
+        // }
+        let ulid = blockEl.getAttribute('ulid')
+        this.currentDraggingULID = ulid
+      }
+    },
+
+    tabOver (na, ev) {
+      if (ev.target) {
+        let ulid = ev.target.getAttribute('ulid')
+        if (ulid) {
+          this.xpos = ev.clientX
+          this.ypos = ev.clientY
+          this.currentHoverULID = ulid
+        }
+      }
+    },
+
+    tabDrop (xfer, ev, board) {
+      // console.log(xfer, ev, board)
+      if (xfer && xfer.type && xfer.type === 'task') {
+        let task = xfer.task
+        task.BoardID = board.BoardID
+        task.SortPosition = 10000
+        xfer.status = 'moved'
+        this.$service.save('task', task)
+      } else if (ev.target) {
+        let ulid = this.currentHoverULID
+        let from = indexByField(this.boardData.records, 'ULID', this.currentDraggingULID)
+        let to = indexByField(this.boardData.records, 'ULID', ulid)
+        if (from !== -1 && to !== -1) {
+          // if (from === (to + 1)) {
+          //   console.log('x', from, to)
+          // } else if (from > to) {
+          //   console.log('y', from, to)
+          //   to = to + 1
+          // }
+          this.sortBoards(from, to)
+        }
+      }
+      this.dragCleanUp()
+    },
+
+    dragCleanUp () {
+      this.xpos = 0
+      this.ypos = 0
+      this.currentHoverULID = ''
+      this.currentDraggingULID = ''
+    },
+
+    addBoard () {
+      let board = this.$service.new('Board', this.siteID)
+      board.People = [this.userID]
+      board.forceUpdate = true
+      let max = 0
+      this.boardData.records.forEach((record) => {
+        if (record.SortPosition > max) {
+          max = record.SortPosition
+        }
+      })
+      max += 50
+      board.SortPosition = max
+      board.Color = randomHexColor()
+      this.boardData.records.splice(0, 0, board)
+      this.$nextTick(() => {
+        this.changeBoard(board.ulid)
+      })
+    },
+
+    addTask ({ status, title }) {
+      let board = this.currentBoard
+      let task = this.$service.new('Task', this.siteID)
+      task._IsNew = true
+      task.BoardID = board.BoardID
+      if (typeof (status) === 'string') {
+        task.Status = status
+      } else {
+        task.Status = 'Todo'
+      }
+      if (title) {
+        task.Title = title
+      } else {
+        task.Title = 'A task to do'
+      }
+      if (!board.Tasks) {
+        board.Tasks = []
+      }
+      board.Tasks.splice(0, 0, task)
+      // this.updateBoards(board, this.currentBoardIndex)
+      this.selectedTaskULID = task.ulid
+      task.SortPosition = getMaxSort(board.Tasks)
+    },
+
+    changeBoard (ulid) {
+      console.log('board changed ', ulid)
+      // this.currentBoardIndex = index
+      // let newULID = this.boardData.records[index].ulid
+      this.$store.commit('general/CURRENT_SELECTED_BOARD', ulid)
+      this.$router.push({ name: 'boards-ulid', params: { ulid } })
+      window.history.replaceState(null, '', `/boards/${ulid}`)
+    },
+
+    saveBoard (board, tabIndex) {
+      this.$service.save('board', board).then((newBoard) => {
+        this.updateBoards(newBoard, tabIndex)
+      })
+    },
+
+    sortBoards (from, to) {
+      let currentULID = this.currentBoard.ulid
+      if (from !== to) {
+        let newRecords = changeSortReverse(this.boardData.records, from, to)
+        this.boardData.records = newRecords
+        setTimeout(() => {
+          this.$axios.put('/api/v1/board/sort', newRecords)
+        })
+        this.changeBoard(currentULID)
+      }
+    },
+
+    boardLoaded () {
+      this.isLoading = false
+    },
+
+    updateBoards (board, tabindex) {
+      if (board) {
+        // update
+        this.$set(this.boardData.records, tabindex, board)
+      } else {
+        // remove
+        this.boardData.records.splice(tabindex, 1)
+        this.changeBoard(tabindex)
+      }
+    },
+
+    fmtDate,
+    ...mapActions({
+      setButtons: 'app/setButtons'
+      // hideFooter: 'app/hideFooter'
+    }),
+
+    archive (board) {
+      let boardID = -1
+      if (board) {
+        boardID = board.BoardID
+      } else {
+        boardID = this.currentBoard.BoardID
+      }
+      let index = indexByField(this.boardData.records, 'BoardID', boardID)
+      this.$service.remove('board', boardID).then(() => {
+        this.updateBoards(null, index)
+      })
+    }
+  }
+}
+</script>

@@ -1,0 +1,343 @@
+package models
+
+import (
+	"encoding/json"
+	"errors"
+	"net/http"
+	"time"
+	"strings"
+	"sort"
+	runner "github.com/nerdynz/dat/sqlx-runner"
+)
+
+var {{.TableNameCamel}}HelperGlobal *{{.TableNameCamel}}Helper
+
+// {{.TableNameTitle}} Record
+type {{.TableNameTitle}} struct {
+  {{range $index, $column := .Columns}}{{$column.ColumnNameTitle}} {{$column.ColumnType}} `db:"{{$column.ColumnName}}" json:"{{$column.ColumnNameTitle}}"`
+  {{end}}
+	{{range $index, $child := .Children}}{{$child.PluralName}}  {{$child.PluralName}}  `json:"{{$child.PluralName}}"`
+	{{end}}
+}
+
+type {{.TableNamePluralTitle}} []*{{.TableNameTitle}}
+
+func (h *{{.TableNameCamel}}Helper) beforeSave(record *{{.TableNameTitle}}) (err error) {
+	if record.DateCreated.IsZero() {
+		record.DateCreated = time.Now()
+	}
+	record.DateModified = time.Now()
+	{{/* if record.ULID == "" {
+		record.ULID = security.ULID()
+	} */}}
+
+	validationErr := h.validate(record)
+	if validationErr != nil {
+		return validationErr
+	}
+	return err
+}
+
+func (h *{{.TableNameCamel}}Helper) afterSave(record *{{.TableNameTitle}}) (err error) {
+	return err
+}
+
+// GENERATED CODE - Leave the below code alone
+type {{.TableNameCamel}}Helper struct {
+	DB            *runner.DB
+	Cache         Cache
+	fieldNames    []string
+	orderBy       string
+}
+
+func {{.TableNameTitle}}Helper() *{{.TableNameCamel}}Helper {
+	if {{.TableNameCamel}}HelperGlobal == nil {
+		{{.TableNameCamel}}HelperGlobal = new{{.TableNameTitle}}Helper(modelDB, modelCache)
+	}
+	return {{.TableNameCamel}}HelperGlobal
+}
+
+func new{{.TableNameTitle}}Helper(db *runner.DB, cache Cache) *{{.TableNameCamel}}Helper {
+	helper := &{{.TableNameCamel}}Helper{}
+	helper.DB = db
+	helper.Cache = cache
+
+	// Fields
+	fieldnames := []string{"{{.TableULID}}", {{.ColumnsDBStrings}}}
+	sort.Strings(fieldnames) // sort it makes searching it work correctly
+	helper.fieldNames = fieldnames
+	
+	{{if .HasSort}}helper.orderBy = "sort_position, date_created, date_modified"{{else}}helper.orderBy = "date_created, date_modified"{{end}}
+	return helper
+}
+
+func (h *{{.TableNameCamel}}Helper) New(siteULID string) *{{.TableNameTitle}} {
+	record := &{{.TableNameTitle}}{}
+	// check DateCreated
+	record.DateCreated = time.Now()
+	record.SiteULID = siteULID
+	return record
+}
+
+func (h *{{.TableNameCamel}}Helper) FromRequest(siteULID string, req *http.Request) (*{{.TableNameTitle}}, error) {
+	record := h.New(siteULID)
+	contentType := req.Header.Get("Content-Type")
+	if strings.Contains(contentType, "application/json") {
+		// working with json
+		decoder := json.NewDecoder(req.Body)
+		err := decoder.Decode(record)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, errors.New("Disabled - bring in h.structDecoder from gorilla")
+		// // working with form values
+		// err := req.ParseForm()
+		// if err != nil {
+		// 	return nil, err
+		// }
+
+		// err = h.structDecoder.Decode(record, req.PostForm)
+		// if err != nil {
+		// 	return nil, err
+		// }
+	}
+	if record.SiteULID != siteULID {
+		return nil, errors.New("*{{.TableNameTitle}} update failed. Site ULID Mismatch")
+	}
+	record.SiteULID = siteULID
+	return record, nil
+}
+
+
+func (h *{{.TableNameCamel}}Helper) Load(siteULID string, ulid string) (*{{.TableNameTitle}}, error) {
+	record, err := h.One(siteULID, "{{.TableULID}} = $1", ulid)
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+
+func (h *{{.TableNameCamel}}Helper) All(siteULID string) ({{.TableNamePluralTitle}}, error) {
+	var records {{.TableNamePluralTitle}}
+	err := h.DB.Select("*").
+		From("{{.TableName}}").
+		Where("site_ulid = $1", siteULID).
+		OrderBy(h.orderBy).
+		QueryStructs(&records)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return records, nil
+}
+
+func (h *{{.TableNameCamel}}Helper) Where(siteULID string, sql string, args ...interface{}) ({{.TableNamePluralTitle}}, error) {
+	var records {{.TableNamePluralTitle}}
+	sql, args = appendSiteULID(siteULID, sql, args...)
+	err := h.DB.Select("*").
+		From("{{.TableName}}").
+		Where(sql, args...).
+		OrderBy(h.orderBy).
+		QueryStructs(&records)
+
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func (h *{{.TableNameCamel}}Helper) SQL(siteULID string, sql string, args ...interface{}) ({{.TableNamePluralTitle}}, error) {
+	if !strings.Contains(sql, "$SITEID") {
+		return nil, errors.New("No $SITEID placeholder defined")
+	}
+	var records {{.TableNamePluralTitle}}
+	sql, args = appendSiteULID(siteULID, sql, args...)
+	err := h.DB.SQL(sql, args...).
+		QueryStructs(&records)
+	if err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func (h *{{.TableNameCamel}}Helper) One(siteULID string, sql string, args ...interface{}) (*{{.TableNameTitle}}, error) {
+	var record {{.TableNameTitle}}
+	sql, args = appendSiteULID(siteULID, sql, args...)
+
+	err := h.DB.Select("*").
+		From("{{.TableName}}").
+		Where(sql, args...).
+		OrderBy(h.orderBy).
+		Limit(1).
+		QueryStruct(&record)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &record, nil
+}
+
+func (h *{{.TableNameCamel}}Helper) Paged(siteULID string, pageNum int, itemsPerPage int) (*PagedData, error) {
+	pd, err := h.PagedBy(siteULID, pageNum, itemsPerPage, "date_created", "") // date_created should be the most consistant because it doesn't change
+	if err != nil {
+		return nil, err
+	}
+	return pd, nil
+}
+
+func (h *{{.TableNameCamel}}Helper) PagedBy(siteULID string, pageNum int, itemsPerPage int, orderByFieldName string, direction string) (*PagedData, error) {
+	if orderByFieldName == "" || orderByFieldName == "default" {
+		// we only want the first field name
+		orderByFieldName = strings.Split(h.orderBy, ",")[0]
+		orderByFieldName = strings.Trim(orderByFieldName, " ")
+	}
+	i := sort.SearchStrings(h.fieldNames, orderByFieldName)
+	// check the orderby exists within the fields as this could be an easy sql injection hole.
+	if !(i {{.LTStr}} len(h.fieldNames) && h.fieldNames[i] == orderByFieldName) { // NOT
+		return nil, errors.New("field name [" + orderByFieldName + "]  isn't a valid field name")
+	}
+
+	if !(direction == "asc" || direction == "desc" || direction == "") {
+		return nil, errors.New("direction isn't valid")
+	}
+
+	var records {{.TableNamePluralTitle}}
+	err := h.DB.Select("*").
+		From("{{.TableName}}").
+		Where("site_ulid = $1", siteULID).
+		OrderBy(orderByFieldName + " " + direction).
+		Offset(uint64((pageNum - 1) * itemsPerPage)).
+		Limit(uint64(itemsPerPage)).
+		QueryStructs(&records)
+
+	if err != nil {
+		return nil, err
+	}
+
+	count := 0
+	h.DB.SQL(`select count({{.TableULID}}) from {{.TableName}} where site_ulid = $1`, siteULID).QueryStruct(&count)
+	return NewPagedData(records, orderByFieldName, direction, itemsPerPage, pageNum, count), nil
+}
+
+func (h *{{.TableNameCamel}}Helper) Save(siteULID string, record *{{.TableNameTitle}}) error {
+	return h.save(siteULID, record)
+}
+
+func (h *{{.TableNameCamel}}Helper) SaveMany(siteULID string, records {{.TableNamePluralTitle}}) error {
+	for _, record := range records {
+		err := h.save(siteULID, record)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (h *{{.TableNameCamel}}Helper) save(siteULID string, record *{{.TableNameTitle}}) error {
+	err := h.beforeSave(record)
+	if err != nil {
+		return err
+	}
+
+	if record.SiteULID != siteULID {
+		return errors.New("*{{.TableNameTitle}} update failed. SiteID Mismatch")
+	}
+	cols := []string{ {{.ColumnsDBStrings}} }
+	vals := []interface{}{ {{.ColumnsRecordPrefixedStrings}} }
+	err = h.DB.Upsert("{{.TableName}}").
+		Columns(cols...).
+		Values(vals...).
+		Where("{{.TableULID}} = $1", record.{{.TableNameTitle}}ULID).
+		Returning("{{.TableULID}}").
+		QueryStruct(record)
+
+	//	if record.{{.TableNameTitle}}ULID != "" {
+	//		// UPDATE
+	//		b := h.DB.Update("{{.TableName}}")
+	//		for i := range cols {
+	//			b.Set(cols[i], vals[i])
+	//		}
+	//		b.Where("{{.TableULID}} = $1", record.{{.TableNameTitle}}ULID)
+	//		b.Returning("{{.TableULID}}")
+	//		err = b.QueryStruct(record)
+	//	} else {
+	//		// INSERT
+	//		err = h.DB.
+	//			InsertInto("{{.TableName}}").
+	//			Columns(cols...).
+	//			Values(vals...).
+	//			Returning("{{.TableULID}}").
+	//			QueryStruct(record)
+	//	}
+	if err != nil {
+		return err
+	}
+	err = h.afterSave(record)
+	return err
+}
+
+func (h *{{.TableNameCamel}}Helper) Delete(siteULID string, recordULID string) (bool, error) {
+	result, err := h.DB.
+		Update("{{.TableName}}").
+		Set("date_deleted", time.Now()).
+		Where("site_ulid=$1 and {{.TableULID}}=$2", siteULID, recordULID).
+		Exec()
+
+	if err != nil {
+		return false, err
+	}
+
+	return (result.RowsAffected > 0), nil
+}
+
+func (h *{{.TableNameCamel}}Helper) Purge(siteULID string, recordULID string) (bool, error) {
+	result, err := h.DB.
+		DeleteFrom("{{.TableName}}").
+		Where("site_ulid=$1 and {{.TableULID}}=$2", siteULID, recordULID).
+		Exec()
+
+	if err != nil {
+		return false, err
+	}
+
+	return (result.RowsAffected > 0), nil
+}
+
+func (h *{{.TableNameCamel}}Helper) validate(record *{{.TableNameTitle}}) (err error) {
+	return nil
+//	validationErrors := h.validator.Struct(record)
+//	if validationErrors != nil {
+//		errMessage := ""
+//		for _, err := range err.(validator.ValidationErrors) {
+//			errMessage += err.Kind().String() + " validation Error on field "+err.Field()
+//		}
+//		if errMessage != "" {
+//			err = errors.New(errMessage)
+//		}
+//	}
+//	return err
+}
+
+{{$tableNameCame := .TableNameCamel}}{{$tableName := .TableName}}{{$tableNameTitle := .TableNameTitle}}{{$TableULID := .TableULID}}
+{{range $index, $child := .Children}}
+func ({{$tableNameCame}} *{{$tableNameTitle}}) Save{{$child.PluralName}}(siteULID string) error {
+	return {{$child.TableName}}Helper().SaveMany(siteULID, {{$tableNameCame}}.{{$child.PluralName}})
+}
+
+func ({{$tableNameCame}} *{{$tableNameTitle}}) Load{{$child.PluralName}}(siteULID string) error {
+	return {{$tableNameCame}}.Load{{$child.PluralName}}Where(siteULID, "{{$TableULID}} = $1 $SITEULID", {{$tableNameCame}}.{{$tableNameTitle}}ULID)
+}
+
+func ({{$tableNameCame}} *{{$tableNameTitle}}) Load{{$child.PluralName}}Where(siteULID string, sql string, args ...interface{}) error {
+	children, err := {{$child.TableName}}Helper().Where(siteULID, sql, args...)
+	if err != nil {
+		return err
+	}
+	{{$tableNameCame}}.{{$child.PluralName}} = children
+	return nil
+}
+{{end}}

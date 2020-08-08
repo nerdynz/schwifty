@@ -1,0 +1,192 @@
+package actions
+
+import (
+		"net/http"
+	"github.com/nerdynz/datastore"
+	flow "github.com/nerdynz/flow"
+)
+
+// New{{.TableNameTitle}} Route
+func New{{.TableNameTitle}}(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+	siteULID, err := ctx.SiteULID()
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Site", err)
+		return
+	}
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNameCamel}} := {{.TableNameCamel}}Helper.New(siteULID)
+	ctx.JSON(http.StatusOK, {{.TableNameCamel}})
+}
+
+// Create{{.TableNameTitle}} Route
+func Create{{.TableNameTitle}}(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+	siteULID, err := ctx.SiteULID()
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Site", err)
+		return
+	}
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.FromRequest(siteULID,ctx.Req)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to create {{.TableNameCamel}} record", err)
+		return
+	}
+	err = {{.TableNameCamel}}Helper.Save(siteULID,{{.TableNameCamel}})
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to create {{.TableNameCamel}} record", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, {{.TableNameCamel}})
+}
+
+// Retrieve{{.TableNameTitle}} Route
+func Retrieve{{.TableNameTitle}}(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+	siteULID, err := ctx.SiteULID()
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Site", err)
+		return
+	}
+	if ctx.URLParam("{{.TableNameCamel}}ULID") == "" {
+		Retrieve{{.TableNamePluralTitle}}(w, req, ctx, store)
+		return
+	}
+
+	//get the {{.TableNameCamel}}ULID from the request
+	{{.TableNameCamel}}ULID := ctx.URLParam("{{.TableNameCamel}}ULID")
+	if {{.TableNameCamel}}ULID == "" {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid {{.TableNameCamel}}ULID", nil)
+		return
+	}
+
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.Load(siteULID,{{.TableNameCamel}}ULID)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to retrieve {{.TableNameTitle}} record", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, {{.TableNameCamel}})
+}
+
+// Retrieve{{.TableNamePluralTitle}} Route
+func Retrieve{{.TableNamePluralTitle}}(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+	siteULID, err := ctx.SiteULID()
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Site", err)
+		return
+	}
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNamePluralCamel}}, err := {{.TableNameCamel}}Helper.All(siteULID)
+
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to retrieve {{.TableNameTitle}} records", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, {{.TableNamePluralCamel}})
+}
+
+// Paged{{.TableNamePluralTitle}} Route
+func Paged{{.TableNamePluralTitle}}(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+	siteULID, err := ctx.SiteULID()
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Site", err)
+		return
+	}
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	pageNum := ctx.URLIntParamWithDefault("pagenum", 1)
+	limit := ctx.URLIntParamWithDefault("limit", 10)
+	sort := ctx.URLParam("sort")
+	direction := ctx.URLParam("direction")
+
+	data, err := {{.TableNameCamel}}Helper.PagedBy(siteULID, pageNum, limit, sort, direction)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Unabled to get paged {{.TableNameTitle}} data", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, data)
+}
+
+// Update{{.TableNameTitle}} Route
+func Update{{.TableNameTitle}}(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+	siteULID, err := ctx.SiteULID()
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Site", err)
+		return
+	}
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	{{.TableNameCamel}}, err := {{.TableNameCamel}}Helper.FromRequest(siteULID, ctx.Req)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to load {{.TableNameTitle}} record for update", err)
+		return
+	}
+
+	// save and validate
+	err = {{.TableNameCamel}}Helper.Save(siteULID, {{.TableNameCamel}})
+	// other type of error
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to save updated {{.TableNameTitle}} record", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, {{.TableNameCamel}})
+}
+
+// Delete{{.TableNameTitle}} Route
+func Delete{{.TableNameTitle}}(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+	siteULID, err := ctx.SiteULID()
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Site", err)
+		return
+	}
+	{{.TableNameCamel}}Helper := models.{{.TableNameTitle}}Helper()
+	//get the {{.TableNameCamel}}ULID from the request
+	{{.TableNameCamel}}ULID := ctx.URLParam("{{.TableNameCamel}}ULID")
+	if {{.TableNameCamel}}ULID == "" {
+		ctx.JSON(http.StatusInternalServerError, "Invalid {{.TableNameTitle}}ID for remove")
+		return
+	}
+
+	isDeleted, err := {{.TableNameCamel}}Helper.Delete(siteULID, {{.TableNameCamel}}ULID)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError,"Failed to remove the {{.TableNameTitle}} record", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, isDeleted)
+}
+
+{{ if .HasSort }}
+// Sort{{.TableNameTitle}} Route
+func Sort{{.TableNameTitle}}(w http.ResponseWriter, req *http.Request, ctx *flow.Context, store *datastore.Datastore) {
+	siteULID, err := ctx.SiteULID()
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Invalid Site", err)
+		return
+	}
+	var sort models.{{.TableNamePluralTitle}}
+	decoder := json.NewDecoder(ctx.Req.Body)
+	err := decoder.Decode(&sort)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	err = models.{{.TableNameTitle}}Helper().SaveMany(siteULID, sort)
+	if err != nil {
+		ctx.ErrorJSON(http.StatusInternalServerError, "Failed to update sort position", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, sort)
+}
+{{end}}
+
+	r.GET("/:api/v1/{{.TableNameLower}}/new", actions.New{{.TableNameTitle}}, security.Disallow)
+	r.PST("/:api/v1/{{.TableNameLower}}/create", actions.Create{{.TableNameTitle}}, security.Disallow)
+	r.GET("/:api/v1/{{.TableNameLower}}/retrieve", actions.Retrieve{{.TableNamePluralTitle}}, security.Disallow)
+	r.GET("/:api/v1/{{.TableNameLower}}/retrieve/:{{.TableNameCamel}}ULID", actions.Retrieve{{.TableNameTitle}}, security.Disallow)
+	r.GET("/:api/v1/{{.TableNameLower}}/paged/:sort/:direction/limit/:limit/pagenum/:pagenum", actions.Paged{{.TableNamePluralTitle}}, security.Disallow)
+	r.PUT("/:api/v1/{{.TableNameLower}}/update/:{{.TableNameCamel}}ULID", actions.Update{{.TableNameTitle}}, security.Disallow)
+	r.DEL("/:api/v1/{{.TableNameLower}}/delete/:{{.TableNameCamel}}ULID", actions.Delete{{.TableNameTitle}}, security.Disallow)
+	{{ if .HasSort }}r.PUT("/:api/v1/{{.TableNameLower}}/sort", actions.Sort{{.TableNameTitle}}, security.Disallow){{end}}
+	

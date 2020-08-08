@@ -1,0 +1,9 @@
+name: NerdyDev
+domain-root: dev.nerdy.co.nz
+mappings:
+  - port: 3000
+    prefix: client
+  - port: 5000
+    prefix: server
+  - port: 7000
+    prefix: mobile
