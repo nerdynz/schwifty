@@ -1,6 +1,5 @@
-
 client/apollo.config.js
-
 .DS_Store
-
 server/.env
+backend/.env
+**/.env

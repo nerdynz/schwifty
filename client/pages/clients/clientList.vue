@@ -7,7 +7,7 @@
       :striped="true"
       :mobile-cards="true"
       :paginated="true"
-      :per-page="limit"
+      :per-page="pagedData.limit"
       :backend-pagination="true"
       :backend-sorting="true"
       :total="pagedData.total"
@@ -25,94 +25,51 @@
             </p>
           </div>
         </b-table-column>
-        <b-table-column field="client_name" label="Name">
-          {{ props.row.client_name }}
+        <b-table-column field="Name" label="Name">
+          {{ props.row.Name }}
         </b-table-column>
         <!-- <b-table-column field="Address" label="Address">
           {{ props.row.Address }}
         </b-table-column> -->
         <b-table-column field="Rate" label="Rate">
-          {{ props.row.rate }}
+          {{ props.row.Rate }}
         </b-table-column>
-        <b-table-column field="date_created" label="Date Created">
-          {{ fmtDate(props.row.date_created) }}
+        <b-table-column field="DateCreated" label="Date Created">
+          {{ fmtDate(props.row.DateCreated) }}
         </b-table-column>
-        <b-table-column field="date_modified" label="Date Modified">
-          {{ fmtDate(props.row.date_modified) }}
+        <b-table-column field="DateModified" label="Date Modified">
+          {{ fmtDate(props.row.DateModified) }}
         </b-table-column>
       </template>
     </b-table>
   </list-placeholder>
 </template>
 <script>
-import { mapActions } from 'vuex'
-import gql from 'graphql-tag'
 import ListPlaceholder from '~/components/layout/ListPlaceholder'
 
 export default {
   components: {
     ListPlaceholder
   },
-  apollo: {
-    pagedData: {
-      variables () {
-        return {
-          siteID: this.siteID,
-          offset: this.offset,
-          limit: this.limit
-        }
-      },
-      update ({ records, total }) {
-        let count = total.aggregate.count || 0
-        let result = {
-          records,
-          total: count
-        }
-        return result
-      },
-      query: gql`query jobs($siteID: Int, $offset: Int, $limit: Int){
-        records: client(where: { site_id: {_eq: $siteID }}, offset: $offset, limit: $limit) {
-          address
-          client_name
-          contact_name
-          date_created
-          date_modified
-          rate
-          site_id
-          ulid
-        },
-        total: client_aggregate(where: { site_id: {_eq: $siteID }}) {
-          aggregate {
-            count
-          }
-        }
-      }`
-
-    }
-  },
   data () {
     return {
-      page: 1,
-      limit: 3,
-      siteID: 1,
+      isLoading: true,
       pagedData: {
+        sort: '',
+        direction: 'desc',
         records: [],
-        total: 0
+        total: 0,
+        pageNum: 1,
+        limit: 50
       }
     }
   },
   computed: {
-    isLoading () {
-      return this.$apollo.queries.pagedData.loading
-    },
     hasData () {
       if (this.pagedData && this.pagedData.records && this.pagedData.records.length > 0) {
         return true
       }
       return false
-    },
-    offset () {
-      return (this.page - 1) * this.limit
     },
     buttons () {
       return [
@@ -121,19 +78,25 @@ export default {
     }
   },
   created () {
+    this.load('DateModified', 'desc', 50, 1)
   },
   methods: {
-    ...mapActions({
-      setButtons: 'app/setButtons'
-    }),
-
     sort (field, direction) {
       let pagedData = this.pagedData
       this.load(field, direction, pagedData.limit, pagedData.pageNum)
     },
 
     pageChange (page) {
-      this.page = page
+      let pagedData = this.pagedData
+      this.load(pagedData.sort, pagedData.direction, pagedData.limit, page)
+    },
+
+    load (sort, direction, limit, pageNum) {
+      this.isLoading = true
+      this.$service.paged('client', sort, direction, limit, pageNum).then((data) => {
+        this.pagedData = data
+        this.isLoading = false
+      })
     },
 
     create () {
@@ -145,4 +108,5 @@ export default {
     }
   }
 }
+
 </script>

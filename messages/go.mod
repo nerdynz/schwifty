@@ -1,8 +1,8 @@
-module github.com/nerdynz/schwifty/messages
+module github.com/nerdynz/schwifty/backend
 
 go 1.14
 
-replace github.com/nerdynz/schwifty/server/server/models => ../server/server/models
+replace github.com/nerdynz/schwifty/backend/server/models => ../backend/server/models
 
 require (
 	github.com/go-pg/pg v8.0.7+incompatible
@@ -13,7 +13,7 @@ require (
 	github.com/nerdynz/dat v1.3.0 // indirect
 	github.com/nerdynz/datastore v0.0.0-20200402045006-0f63cc077d94
 	github.com/nerdynz/rcache v0.0.0-20200404024229-09aee2ea3078
-	github.com/nerdynz/schwifty/server/server/models v0.0.0-00010101000000-000000000000
+	github.com/nerdynz/schwifty/backend/server/models v0.0.0-00010101000000-000000000000
 	github.com/nerdynz/trove v0.0.0-20200425063959-61f6ab2f6311
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/shomali11/xredis v0.0.0-20190608143638-0b54a6bbf40b // indirect

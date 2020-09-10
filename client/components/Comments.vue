@@ -1,22 +1,24 @@
 <template>
-  <div class="comments-box">
-    <div class="comment" v-for="message in messages" :key="message.MessageID">
-      <div class="comment-details">
-        <a href="#" class="make-action" @click.prevent="makeActionPoint(message)">
-          <b-icon icon="reply" size="is-small" />
-        </a>
-        <div class="author">
-          {{ message.Author ? message.Author : 'Anonymous' }}
+  <edit-form title="Comments" size="small" no-margin class="comments-box">
+    <div class="comments-scroller">
+      <div class="comment" v-for="message in messages" :key="message.MessageID">
+        <div class="comment-details">
+          <a href="#" class="make-action" @click.prevent="makeActionPoint(message)">
+            <b-icon icon="reply" size="is-small" />
+          </a>
+          <div class="author">
+            {{ message.Author ? message.Author : 'Anonymous' }}
+          </div>
+          <div class="thin-label">
+            {{ time(message) }}
+          </div>
         </div>
-        <div class="thin-label">
-          {{ time(message) }}
-        </div>
+        <div v-html="addLineBreaks(message.Comment)" />
       </div>
-      <div v-html="addLineBreaks(message.Comment)" />
     </div>
     <div class="comment-input">
       <div class="comment-bg">
-        <drop @drop="drop" @dragover="dragOver">
+        <drop class="comment-drag" @drop="drop" @dragover="dragOver">
           <textarea
             x-hint="tooltip"
             rows="3"
@@ -34,7 +36,7 @@
         </drop>
       </div>
     </div>
-  </div>
+  </edit-form>
 </template>
 
 <script>
@@ -55,10 +57,11 @@ export default {
   },
   computed: {
     ...mapGetters({
-      siteID: 'auth/siteID'
+      siteID: 'auth/siteID',
+      user: 'auth/user'
     }),
     messages () {
-      return this.task.Actionables
+      return this.task.Messages
     },
     osType () {
       return (window.platform.os.family.includes('OS X') ? 'cmd' : 'ctrl') + '+enter'
@@ -78,7 +81,7 @@ export default {
     }
   },
   mounted () {
-    this.newMessage = this.$service.new('Actionable', this.siteID)
+    this.makeNewMessage()
   },
   beforeDestroy () {
   },
@@ -91,16 +94,22 @@ export default {
       return fmtTime(msg.DateCreated)
     },
 
+    makeNewMessage () {
+      this.newMessage = this.$service.new('Message', this.siteID)
+      this.newMessage.PersonULID = this.user.ULID
+    },
+
     addComment (ev) {
       let message = this.newMessage
       if (!message.Comment) return // leave early if no message
 
       if (ev.metaKey || ev.ctrlKey || ev.type === 'click') {
-        message.TaskID = this.task.TaskID
-        this.$service.save('Actionable', message).then((message) => {
+        message.BoardULID = this.task.BoardULID
+        message.TaskULID = this.task.TaskULID
+        this.$service.save('~Message', message).then((message) => {
           this.$emit('message-added', message)
         })
-        this.newMessage = this.$service.new('Actionable', this.siteID)
+        this.makeNewMessage()
       }
     },
 

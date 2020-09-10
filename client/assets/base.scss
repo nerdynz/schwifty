@@ -142,28 +142,6 @@ footer.footer {
   }
 }
 
-
-.edit-form {
-  padding: 0rem 1rem 1rem;
-  .edit-form-header {
-    margin: 1.5rem -1rem 1.5rem;
-    padding: 1rem;
-    background-color: $input-border-color;
-    display: flex;
-    align-items: center;
-  }
-  .edit-form-title {
-    font-size: $size-large;
-    font-weight: $weight-bold;
-  }
-
-  &:first-of-type {
-    .edit-form-header {
-      margin-top: 0;
-    }
-  }
-}
-
 .field {
   &.is-combined {
     .is-top {

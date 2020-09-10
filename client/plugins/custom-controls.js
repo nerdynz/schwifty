@@ -7,6 +7,7 @@ import VueDragDrop from 'vue-drag-drop'
 import Multiselect from 'vue-multiselect'
 import VueQuill from 'vue-quill'
 import EditForm from '~/components/EditForm'
+import EditHeader from '~/components/EditHeader'
 import Field from '~/components/Field'
 import { fmtDate, fmtDateTime } from '~/helpers/format'
 import { focusElement } from '~/helpers/helpers'
@@ -30,6 +31,7 @@ Vue.mixin({
 Vue.use(require('vue-prevent-parent-scroll'))
 // Vue.component('event-calendar', Calendar)
 Vue.component('field', Field)
+Vue.component('edit-header', EditHeader)
 Vue.component('edit-form', EditForm)
 
 Vue.directive('label', {

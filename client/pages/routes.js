@@ -73,6 +73,7 @@ export default function () {
       icon: 'money-bill',
       children: {
         'invoices-ID-invoiceEdit': {
+          isRouteOnly: true,
           title (instance) {
             return instance.$route.params.ID === 0 ? 'Create Invoice' : 'Edit Invoice'
           }
@@ -84,6 +85,7 @@ export default function () {
       icon: 'users',
       children: {
         'people-ID-personEdit': {
+          isRouteOnly: true,
           title (instance) {
             return instance.$route.params.ID === 0 ? 'Create Person' : 'Edit Person'
           }

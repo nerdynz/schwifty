@@ -75,6 +75,7 @@
         @close="closeTaskModal"
         has-modal-card
         trap-focus
+        scroll="keep"
         :destroy-on-hide="true"
         aria-role="dialog"
         aria-modal

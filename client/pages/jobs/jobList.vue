@@ -49,7 +49,6 @@
   </list-placeholder>
 </template>
 <script>
-import { mapActions } from 'vuex'
 import ListPlaceholder from '~/components/layout/ListPlaceholder'
 
 export default {
@@ -85,10 +84,6 @@ export default {
     this.load('DateModified', 'desc', 50, 1)
   },
   methods: {
-    ...mapActions({
-      setButtons: 'app/setButtons'
-    }),
-
     sort (field, direction) {
       let pagedData = this.pagedData
       this.load(field, direction, pagedData.limit, pagedData.pageNum)
@@ -100,10 +95,8 @@ export default {
     },
 
     load (sort, direction, limit, pageNum) {
-      this.isLoading = true
       this.$service.paged('job', sort, direction, limit, pageNum).then((data) => {
         this.pagedData = data
-        this.isLoading = false
       })
     },
 

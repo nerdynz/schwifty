@@ -46,7 +46,7 @@
             </span>
           </b-table-column>
           <b-table-column field="IsDeleted" label="Deleted">
-            <button class="button is-danger is-small" @click="props.row.IsDeleted = true"><i class="far fa-trash"></i></button>
+            <button class="button is-danger is-small" @click="props.row.IsDeleted = true"><i class="far fa-trash" /></button>
           </b-table-column>
         </template>
       </b-table>

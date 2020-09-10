@@ -52,10 +52,9 @@
     background-color: var(--nav-bg-color);
     position: relative;
     z-index: 20;
-    border-bottom-left-radius: 15px;
-    padding: 0 10px;
+    border-bottom-left-radius: 6px;
     .navbar-item {
-      padding: 0.25rem;
+      padding: 0.3rem 0 0.3rem 0.4rem;
       .button {
         padding:0 0.5em;
         .icon {
@@ -100,7 +99,7 @@
   }
 
   .sub-nav {
-    height: 40px;
+    height: 39px;
     background: var(--sec-nav-bg-color);
     z-index: 10;
     box-shadow: 0;
@@ -717,117 +716,6 @@
       }
     }
   }
-
-  .tile {
-    &.is-parent {
-      &.comments, &.action-points, &.notes {
-        position: relative;
-      }
-
-      &.action-points, &.notes {
-        position: relative;
-        padding-left: 1.25rem;
-
-        .level {
-          margin-bottom: .5rem;
-        }
-      }
-
-      &.comments{
-        padding-top: 0;
-        padding-right: 1.25rem;
-        
-        .box {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .comment {
-          margin-bottom: 0.5rem;
-          border-left: 3px solid $purple;
-          padding-left: 0.8rem;
-        }
-
-        .comment-details {
-          font-size: 0.8rem;
-          display: flex;
-
-          .author {
-            font-weight: $weight-bold;
-            margin-right: 0.5rem;
-          }
-        }
-
-        .comments-scroller {
-          overflow-y: auto;
-          margin: -1.0rem;
-          margin-top: -2.3rem;
-          margin-bottom: 3.25rem;
-          padding: 2.25rem 1.75rem 0rem 1.0rem;
-          // height: 100px;
-        }
-
-        .comment-input {
-          width: 100%;
-          position: absolute;
-          left: 0;
-          bottom: 0;
-          height: 4.0rem;
-
-          .comment-bg {
-            padding: 0rem .5rem 0rem .5rem;
-            // background-color: $white;
-          }
-          
-          strong {
-            color: $white;
-          }
-
-          textarea,
-          button {
-            height: 3.4rem;
-          }
-          textarea {
-            padding-right: 4rem;
-          }
-          button {
-            position: absolute;
-            top: 0rem;
-            right: 0.5rem;
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-          }
-        }
-
-        .small-label {
-          right: 7rem;
-        }
-
-        .label {
-          border-top: 1.0rem solid $white;
-          margin-top: -1.0rem;
-          margin-left: -.5rem;
-          margin-right: .5rem;
-          padding-left: .5rem;
-          position: relative;
-          z-index: 20;
-          background-color: white;
-        }
-      }
-
-      .note-input {
-        font-size: 0.85rem;
-        min-height: 2rem;
-      }
-
-      &.action-points{
-        padding-top: 0;
-      }
-      
-      &.notes {
-      }
-    }
-  }
 }
 
 
@@ -842,8 +730,118 @@
     }
   }
 
+  .description {
+    border:none;
+    background: none;
+    display: block;
+    outline: none;
+    padding: 0.75rem 1rem;
+    min-width: 100%;
+    max-width: 100%;
+  }
+
+  .modal-card-head {
+    box-shadow: $common-box-shadow;
+  }
+
+
   .modal-card-body {
     min-width: 75vw;
     min-height: 60vh;
+    padding:0;
+    box-shadow: $common-box-shadow;
+  }
+
+  .comments-box {
+    width: 100%;
+    height: 100%;
+    background: red;
+    flex-grow: 2;
+
+    .box {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .comment {
+      margin-bottom: 0.5rem;
+      border-left: 3px solid $purple;
+      padding-left: 0.8rem;
+    }
+
+    .comment-details {
+      font-size: 0.8rem;
+      display: flex;
+
+      .author {
+        font-weight: $weight-bold;
+        margin-right: 0.5rem;
+      }
+    }
+
+    .comments-scroller {
+      overflow-y: auto;
+    }
+
+    .comment-input {
+      width: 100%;
+      min-height: 100%;
+      left: 0;
+      bottom: 0;
+      height: 4.0rem;
+      display: flex;
+
+      .comment-bg {
+        // padding: 0rem .5rem 0rem .5rem;
+        // background-color: $white;
+      }
+      
+      strong {
+        color: $white;
+      }
+
+      textarea,
+      button {
+        height: 3.4rem;
+      }
+      textarea {
+        padding-right: 4rem;
+      }
+      button {
+        position: absolute;
+        top: 0rem;
+        right: 0.5rem;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+      }
+    }
+
+    .small-label {
+      right: 7rem;
+    }
+
+    .label {
+      border-top: 1.0rem solid $white;
+      margin-top: -1.0rem;
+      margin-left: -.5rem;
+      margin-right: .5rem;
+      padding-left: .5rem;
+      position: relative;
+      z-index: 20;
+      background-color: white;
+    }
+  }
+
+  .note-input {
+    font-size: 0.85rem;
+    min-height: 2rem;
+  }
+}
+
+.u-fh-cascade{
+  height: 100%;
+
+  div, section {
+    height: 100%;
   }
 }

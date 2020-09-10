@@ -1,9 +1,13 @@
 export default function ({ app, store, env }) {
   app.$axios.interceptors.request.use(function (config) {
-    if (config.url.indexOf(env.apiURL) !== 0) {
-      config.url = config.url.replace('/api', env.apiURL)
+    if (env.apiURL) {
+      if (config.url.indexOf(env.apiURL) !== 0) {
+        config.url = config.url.replace('/api', env.apiURL)
+      }
+      config.url = config.url.replace('API_URL', env.apiURL)
+    } else {
+      config.url = config.url.replace('API_URL', '/api')
     }
-    config.url = config.url.replace('API_URL', env.apiURL)
 
     if (store.state.auth.isValid) {
       let token = store.state.auth.details.token

@@ -4,7 +4,14 @@
       <title-input v-model="task.Title" />
     </header>
     <section class="modal-card-body">
-      asdf
+      <div class="columns is-gapless u-fh-cascade">
+        <div class="column is-8 ">
+          <div class="is-flex-column">
+            <edit-form title="Description" size="small"><textarea class="description" v-model="task.Notes" rows="5" /></edit-form>
+            <comments :task="task" />
+          </div>
+        </div>
+      </div>
     </section>
     <footer class="modal-card-foot">
       <button class="button is-info">
@@ -15,11 +22,14 @@
 </template>
 <script>
 import TitleInput from '~/components/TitleInput'
+import Comments from '~/components/Comments'
+
 export default {
   // COMPONENT
   // ______________________________________
   components: {
-    TitleInput
+    TitleInput,
+    Comments
   },
   props: {
     taskUlid: {
@@ -44,7 +54,7 @@ export default {
   beforeMount () {
   },
   mounted () {
-    this.$service.retrieve('~task', this.taskUlid).then((task) => {
+    this.$service.retrieve('~Task', this.taskUlid).then((task) => {
       this.task = task
     })
   },
@@ -53,6 +63,7 @@ export default {
   updated () {
   },
   beforeDestroy () {
+    this.$service.save('~Task', this.task)
   },
   destroyed () {
   },
